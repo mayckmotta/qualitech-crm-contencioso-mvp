@@ -49,3 +49,4 @@ class Tratativa(db.Model):
     status_registrado = db.Column(db.String(30), nullable=False)
     anexo_nome = db.Column(db.String(200), nullable=True)
     criado_em = db.Column(db.DateTime, default=datetime.now)
+
