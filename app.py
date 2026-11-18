@@ -24,11 +24,17 @@ def load_user(user_id):
 def arquivo_permitido(nome_arquivo):
     return '.' in nome_arquivo and nome_arquivo.rsplit('.', 1)[1].lower() in EXTENSOES_PERMITIDAS
 
+@app.after_request
+def aplicar_cabecalhos_seguranca(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    return response
+
 @app.route('/')
 @login_required
 def fila_unica():
-    canal = request.args.get('canal', '')
-    status = request.args.get('status', '')
+    canal = request.args.get('canal', '').strip()
+    status = request.args.get('status', '').strip()
     protocolo = request.args.get('protocolo', '').strip()
 
     consulta = Demanda.query.filter(Demanda.status != 'Concluído')
@@ -47,6 +53,10 @@ def fila_unica():
 def nova_demanda():
     if request.method == 'POST':
         protocolo = request.form.get('protocolo', '').strip()
+        if not protocolo:
+            flash('O número de protocolo é obrigatório.', 'danger')
+            return render_template('formulario.html')
+
         if Demanda.query.filter_by(protocolo=protocolo).first():
             flash('Protocolo já cadastrado no sistema. Verifique o número informado.', 'danger')
             return render_template('formulario.html')
@@ -54,10 +64,10 @@ def nova_demanda():
         demanda = Demanda(
             protocolo=protocolo,
             canal=request.form.get('canal'),
-            reclamante=request.form.get('reclamante'),
-            cpf=request.form.get('cpf'),
+            reclamante=request.form.get('reclamante', '').strip(),
+            cpf=request.form.get('cpf', '').strip(),
             data_limite=datetime.strptime(request.form.get('data_limite'), '%Y-%m-%dT%H:%M'),
-            resumo=request.form.get('resumo'),
+            resumo=request.form.get('resumo', '').strip(),
             status='Aberto'
         )
         db.session.add(demanda)
@@ -105,4 +115,3 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     app.run(debug=False)
-    
